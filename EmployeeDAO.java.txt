@@ -1,0 +1,184 @@
+package dao;
+
+import util.DatabaseConnection;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Data Access Object for Employee operations
+ */
+public class EmployeeDAO {
+    
+    /**
+     * Get all employees from database
+     * @return List of employee maps
+     */
+    public List<Map<String, Object>> getAllEmployees() {
+        List<Map<String, Object>> employees = new ArrayList<>();
+        String query = "SELECT EmpID, Name, Salary, Department, JoinDate, Email FROM employee ORDER BY EmpID";
+        
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(query);
+            
+            while (rs.next()) {
+                Map<String, Object> employee = new HashMap<>();
+                employee.put("EmpID", rs.getInt("EmpID"));
+                employee.put("Name", rs.getString("Name"));
+                employee.put("Salary", rs.getDouble("Salary"));
+                employee.put("Department", rs.getString("Department"));
+                employee.put("JoinDate", rs.getDate("JoinDate"));
+                employee.put("Email", rs.getString("Email"));
+                
+                employees.add(employee);
+            }
+            
+            System.out.println("Retrieved " + employees.size() + " employees");
+            
+        } catch (SQLException e) {
+            System.err.println("Error fetching all employees: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            closeResources(rs, stmt, conn);
+        }
+        
+        return employees;
+    }
+    
+    /**
+     * Get employee by ID
+     * @param empId Employee ID
+     * @return Employee map or null if not found
+     */
+    public Map<String, Object> getEmployeeById(int empId) {
+        String query = "SELECT EmpID, Name, Salary, Department, JoinDate, Email FROM employee WHERE EmpID = ?";
+        
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
+            pstmt = conn.prepareStatement(query);
+            pstmt.setInt(1, empId);
+            rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                Map<String, Object> employee = new HashMap<>();
+                employee.put("EmpID", rs.getInt("EmpID"));
+                employee.put("Name", rs.getString("Name"));
+                employee.put("Salary", rs.getDouble("Salary"));
+                employee.put("Department", rs.getString("Department"));
+                employee.put("JoinDate", rs.getDate("JoinDate"));
+                employee.put("Email", rs.getString("Email"));
+                
+                System.out.println("Employee found: " + rs.getString("Name"));
+                return employee;
+            } else {
+                System.out.println("No employee found with ID: " + empId);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error fetching employee by ID: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            closeResources(rs, pstmt, conn);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Search employees by name
+     * @param searchTerm Search term
+     * @return List of matching employees
+     */
+    public List<Map<String, Object>> searchEmployeesByName(String searchTerm) {
+        List<Map<String, Object>> employees = new ArrayList<>();
+        String query = "SELECT EmpID, Name, Salary, Department, JoinDate, Email FROM employee " +
+                      "WHERE Name LIKE ? ORDER BY Name";
+        
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
+            pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, "%" + searchTerm + "%");
+            rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                Map<String, Object> employee = new HashMap<>();
+                employee.put("EmpID", rs.getInt("EmpID"));
+                employee.put("Name", rs.getString("Name"));
+                employee.put("Salary", rs.getDouble("Salary"));
+                employee.put("Department", rs.getString("Department"));
+                employee.put("JoinDate", rs.getDate("JoinDate"));
+                employee.put("Email", rs.getString("Email"));
+                
+                employees.add(employee);
+            }
+            
+            System.out.println("Found " + employees.size() + " employees matching: " + searchTerm);
+            
+        } catch (SQLException e) {
+            System.err.println("Error searching employees: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            closeResources(rs, pstmt, conn);
+        }
+        
+        return employees;
+    }
+    
+    /**
+     * Get employee count
+     * @return Total number of employees
+     */
+    public int getEmployeeCount() {
+        String query = "SELECT COUNT(*) as count FROM employee";
+        
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(query);
+            
+            if (rs.next()) {
+                return rs.getInt("count");
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting employee count: " + e.getMessage());
+        } finally {
+            closeResources(rs, stmt, conn);
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Close database resources
+     */
+    private void closeResources(ResultSet rs, Statement stmt, Connection conn) {
+        try {
+            if (rs != null) rs.close();
+            if (stmt != null) stmt.close();
+            if (conn != null) conn.close();
+        } catch (SQLException e) {
+            System.err.println("Error closing resources: " + e.getMessage());
+        }
+    }
+}
