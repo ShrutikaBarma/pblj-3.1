@@ -1,0 +1,185 @@
+package servlets;
+
+import dao.AttendanceDAO;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.sql.Date;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+
+/**
+ * Servlet for handling attendance operations
+ * Maps to /attendance URL
+ */
+@WebServlet("/attendance")
+public class AttendanceServlet extends HttpServlet {
+    
+    private AttendanceDAO attendanceDAO;
+    private SimpleDateFormat dateFormat;
+    
+    @Override
+    public void init() throws ServletException {
+        attendanceDAO = new AttendanceDAO();
+        dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        System.out.println("AttendanceServlet initialized");
+    }
+    
+    /**
+     * Handles GET requests - Redirect to JSP form
+     */
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        response.sendRedirect("attendance.jsp");
+    }
+    
+    /**
+     * Handles POST requests - Process attendance submission
+     */
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        
+        response.setContentType("text/html");
+        PrintWriter out = response.getWriter();
+        
+        // Retrieve form parameters
+        String studentId = request.getParameter("studentId");
+        String studentName = request.getParameter("studentName");
+        String dateStr = request.getParameter("attendanceDate");
+        String status = request.getParameter("status");
+        String remarks = request.getParameter("remarks");
+        
+        // Validate input
+        if (studentId == null || studentId.trim().isEmpty() ||
+            studentName == null || studentName.trim().isEmpty() ||
+            dateStr == null || dateStr.trim().isEmpty() ||
+            status == null || status.trim().isEmpty()) {
+            
+            displayError(out, "All required fields must be filled!");
+            return;
+        }
+        
+        try {
+            // Parse date
+            java.util.Date utilDate = dateFormat.parse(dateStr);
+            Date sqlDate = new Date(utilDate.getTime());
+            
+            // Check if attendance already exists
+            if (attendanceDAO.attendanceExists(studentId, sqlDate)) {
+                displayError(out, "Attendance already marked for student " + studentId + " on " + dateStr);
+                return;
+            }
+            
+            // Save attendance
+            boolean success = attendanceDAO.saveAttendance(
+                studentId.trim(),
+                studentName.trim(),
+                sqlDate,
+                status,
+                remarks != null ? remarks.trim() : ""
+            );
+            
+            if (success) {
+                displaySuccess(out, studentId, studentName, dateStr, status);
+            } else {
+                displayError(out, "Failed to save attendance. Please try again.");
+            }
+            
+        } catch (ParseException e) {
+            displayError(out, "Invalid date format. Please use YYYY-MM-DD format.");
+        } catch (Exception e) {
+            System.err.println("Error processing attendance: " + e.getMessage());
+            e.printStackTrace();
+            displayError(out, "An error occurred while processing attendance.");
+        }
+    }
+    
+    /**
+     * Display success message
+     */
+    private void displaySuccess(PrintWriter out, String studentId, String studentName, 
+                               String date, String status) {
+        out.println("<!DOCTYPE html>");
+        out.println("<html>");
+        out.println("<head>");
+        out.println("<title>Attendance Marked</title>");
+        out.println("<meta charset='UTF-8'>");
+        out.println("<meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+        out.println("<style>");
+        out.println("* { margin: 0; padding: 0; box-sizing: border-box; }");
+        out.println("body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }");
+        out.println(".success-container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-width: 500px; text-align: center; }");
+        out.println("h1 { color: #27ae60; margin-bottom: 20px; }");
+        out.println(".success-icon { font-size: 60px; margin-bottom: 20px; }");
+        out.println(".details { background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: left; }");
+        out.println(".details p { margin: 10px 0; color: #333; }");
+        out.println(".details strong { color: #27ae60; }");
+        out.println(".btn { display: inline-block; padding: 12px 30px; margin: 10px 5px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; transition: background 0.3s; }");
+        out.println(".btn:hover { background: #5568d3; }");
+        out.println(".btn-secondary { background: #95a5a6; }");
+        out.println(".btn-secondary:hover { background: #7f8c8d; }");
+        out.println("</style>");
+        out.println("</head>");
+        out.println("<body>");
+        out.println("<div class='success-container'>");
+        out.println("<div class='success-icon'>✅</div>");
+        out.println("<h1>Attendance Marked Successfully!</h1>");
+        out.println("<div class='details'>");
+        out.println("<p><strong>Student ID:</strong> " + studentId + "</p>");
+        out.println("<p><strong>Student Name:</strong> " + studentName + "</p>");
+        out.println("<p><strong>Date:</strong> " + date + "</p>");
+        out.println("<p><strong>Status:</strong> " + status + "</p>");
+        out.println("<p><strong>Recorded At:</strong> " + new java.util.Date() + "</p>");
+        out.println("</div>");
+        out.println("<div>");
+        out.println("<a href='attendance.jsp' class='btn'>Mark Another</a>");
+        out.println("<a href='viewAttendance' class='btn btn-secondary'>View Records</a>");
+        out.println("</div>");
+        out.println("</div>");
+        out.println("</body>");
+        out.println("</html>");
+    }
+    
+    /**
+     * Display error message
+     */
+    private void displayError(PrintWriter out, String errorMessage) {
+        out.println("<!DOCTYPE html>");
+        out.println("<html>");
+        out.println("<head>");
+        out.println("<title>Error</title>");
+        out.println("<meta charset='UTF-8'>");
+        out.println("<meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+        out.println("<style>");
+        out.println("* { margin: 0; padding: 0; box-sizing: border-box; }");
+        out.println("body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }");
+        out.println(".error-container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-width: 500px; text-align: center; }");
+        out.println("h1 { color: #e74c3c; margin-bottom: 20px; }");
+        out.println(".error-icon { font-size: 60px; margin-bottom: 20px; }");
+        out.println(".error-message { background: #ffebee; color: #c62828; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #e74c3c; }");
+        out.println(".btn { display: inline-block; padding: 12px 30px; margin-top: 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; }");
+        out.println(".btn:hover { background: #5568d3; }");
+        out.println("</style>");
+        out.println("</head>");
+        out.println("<body>");
+        out.println("<div class='error-container'>");
+        out.println("<div class='error-icon'>⚠️</div>");
+        out.println("<h1>Error</h1>");
+        out.println("<div class='error-message'>" + errorMessage + "</div>");
+        out.println("<a href='attendance.jsp' class='btn'>Go Back</a>");
+        out.println("</div>");
+        out.println("</body>");
+        out.println("</html>");
+    }
+    
+    @Override
+    public void destroy() {
+        System.out.println("AttendanceServlet destroyed");
+    }
+}
