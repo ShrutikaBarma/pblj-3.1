@@ -1,0 +1,292 @@
+
+package servlets;
+
+import dao.EmployeeDAO;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Servlet for handling employee operations
+ * Maps to /employees URL
+ */
+@WebServlet("/employees")
+public class EmployeeServlet extends HttpServlet {
+    
+    private EmployeeDAO employeeDAO;
+    private SimpleDateFormat dateFormat;
+    
+    @Override
+    public void init() throws ServletException {
+        employeeDAO = new EmployeeDAO();
+        dateFormat = new SimpleDateFormat("dd-MMM-yyyy");
+        System.out.println("EmployeeServlet initialized");
+    }
+    
+    /**
+     * Handles GET requests - Display all employees or search results
+     */
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        
+        response.setContentType("text/html");
+        PrintWriter out = response.getWriter();
+        
+        // Check for search parameter
+        String searchId = request.getParameter("searchId");
+        String searchName = request.getParameter("searchName");
+        
+        if (searchId != null && !searchId.trim().isEmpty()) {
+            // Search by ID
+            searchEmployeeById(out, searchId);
+        } else if (searchName != null && !searchName.trim().isEmpty()) {
+            // Search by name
+            searchEmployeeByName(out, searchName);
+        } else {
+            // Display all employees
+            displayAllEmployees(out);
+        }
+    }
+    
+    /**
+     * Handles POST requests - Same as GET for this servlet
+     */
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        doGet(request, response);
+    }
+    
+    /**
+     * Display all employees in HTML table
+     */
+    private void displayAllEmployees(PrintWriter out) {
+        List<Map<String, Object>> employees = employeeDAO.getAllEmployees();
+        
+        printHTMLHeader(out, "Employee Records");
+        
+        out.println("<div class='container'>");
+        out.println("<h1>📋 Employee Records</h1>");
+        out.println("<p class='subtitle'>Total Employees: " + employees.size() + "</p>");
+        
+        // Search forms
+        printSearchForms(out);
+        
+        if (employees.isEmpty()) {
+            out.println("<div class='no-data'>No employees found in the database.</div>");
+        } else {
+            out.println("<div class='table-container'>");
+            out.println("<table>");
+            out.println("<thead>");
+            out.println("<tr>");
+            out.println("<th>Emp ID</th>");
+            out.println("<th>Name</th>");
+            out.println("<th>Department</th>");
+            out.println("<th>Salary</th>");
+            out.println("<th>Join Date</th>");
+            out.println("<th>Email</th>");
+            out.println("</tr>");
+            out.println("</thead>");
+            out.println("<tbody>");
+            
+            for (Map<String, Object> emp : employees) {
+                out.println("<tr>");
+                out.println("<td>" + emp.get("EmpID") + "</td>");
+                out.println("<td>" + emp.get("Name") + "</td>");
+                out.println("<td>" + emp.get("Department") + "</td>");
+                out.println("<td>₹" + String.format("%,.2f", emp.get("Salary")) + "</td>");
+                out.println("<td>" + dateFormat.format(emp.get("JoinDate")) + "</td>");
+                out.println("<td>" + emp.get("Email") + "</td>");
+                out.println("</tr>");
+            }
+            
+            out.println("</tbody>");
+            out.println("</table>");
+            out.println("</div>");
+        }
+        
+        printNavigationButtons(out);
+        out.println("</div>");
+        
+        printHTMLFooter(out);
+    }
+    
+    /**
+     * Search employee by ID
+     */
+    private void searchEmployeeById(PrintWriter out, String searchId) {
+        try {
+            int empId = Integer.parseInt(searchId);
+            Map<String, Object> employee = employeeDAO.getEmployeeById(empId);
+            
+            printHTMLHeader(out, "Search Results");
+            out.println("<div class='container'>");
+            out.println("<h1>🔍 Search Results</h1>");
+            
+            printSearchForms(out);
+            
+            if (employee != null) {
+                out.println("<div class='employee-detail'>");
+                out.println("<h2>Employee Details</h2>");
+                out.println("<div class='detail-grid'>");
+                out.println("<div class='detail-item'><strong>Employee ID:</strong> " + employee.get("EmpID") + "</div>");
+                out.println("<div class='detail-item'><strong>Name:</strong> " + employee.get("Name") + "</div>");
+                out.println("<div class='detail-item'><strong>Department:</strong> " + employee.get("Department") + "</div>");
+                out.println("<div class='detail-item'><strong>Salary:</strong> ₹" + String.format("%,.2f", employee.get("Salary")) + "</div>");
+                out.println("<div class='detail-item'><strong>Join Date:</strong> " + dateFormat.format(employee.get("JoinDate")) + "</div>");
+                out.println("<div class='detail-item'><strong>Email:</strong> " + employee.get("Email") + "</div>");
+                out.println("</div>");
+                out.println("</div>");
+            } else {
+                out.println("<div class='no-data'>No employee found with ID: " + empId + "</div>");
+            }
+            
+            printNavigationButtons(out);
+            out.println("</div>");
+            printHTMLFooter(out);
+            
+        } catch (NumberFormatException e) {
+            printHTMLHeader(out, "Error");
+            out.println("<div class='container'>");
+            out.println("<div class='error-message'>Invalid Employee ID format. Please enter a valid number.</div>");
+            out.println("<a href='employees' class='btn'>Back to Employee List</a>");
+            out.println("</div>");
+            printHTMLFooter(out);
+        }
+    }
+    
+    /**
+     * Search employees by name
+     */
+    private void searchEmployeeByName(PrintWriter out, String searchName) {
+        List<Map<String, Object>> employees = employeeDAO.searchEmployeesByName(searchName);
+        
+        printHTMLHeader(out, "Search Results");
+        out.println("<div class='container'>");
+        out.println("<h1>🔍 Search Results for: \"" + searchName + "\"</h1>");
+        out.println("<p class='subtitle'>Found " + employees.size() + " employee(s)</p>");
+        
+        printSearchForms(out);
+        
+        if (employees.isEmpty()) {
+            out.println("<div class='no-data'>No employees found matching: \"" + searchName + "\"</div>");
+        } else {
+            out.println("<div class='table-container'>");
+            out.println("<table>");
+            out.println("<thead>");
+            out.println("<tr><th>Emp ID</th><th>Name</th><th>Department</th><th>Salary</th><th>Join Date</th><th>Email</th></tr>");
+            out.println("</thead>");
+            out.println("<tbody>");
+            
+            for (Map<String, Object> emp : employees) {
+                out.println("<tr>");
+                out.println("<td>" + emp.get("EmpID") + "</td>");
+                out.println("<td>" + emp.get("Name") + "</td>");
+                out.println("<td>" + emp.get("Department") + "</td>");
+                out.println("<td>₹" + String.format("%,.2f", emp.get("Salary")) + "</td>");
+                out.println("<td>" + dateFormat.format(emp.get("JoinDate")) + "</td>");
+                out.println("<td>" + emp.get("Email") + "</td>");
+                out.println("</tr>");
+            }
+            
+            out.println("</tbody>");
+            out.println("</table>");
+            out.println("</div>");
+        }
+        
+        printNavigationButtons(out);
+        out.println("</div>");
+        printHTMLFooter(out);
+    }
+    
+    /**
+     * Print search forms
+     */
+    private void printSearchForms(PrintWriter out) {
+        out.println("<div class='search-container'>");
+        out.println("<form method='GET' action='employees' class='search-form'>");
+        out.println("<input type='number' name='searchId' placeholder='Search by Employee ID' required>");
+        out.println("<button type='submit' class='btn'>Search by ID</button>");
+        out.println("</form>");
+        
+        out.println("<form method='GET' action='employees' class='search-form'>");
+        out.println("<input type='text' name='searchName' placeholder='Search by Name' required>");
+        out.println("<button type='submit' class='btn'>Search by Name</button>");
+        out.println("</form>");
+        out.println("</div>");
+    }
+    
+    /**
+     * Print navigation buttons
+     */
+    private void printNavigationButtons(PrintWriter out) {
+        out.println("<div class='navigation'>");
+        out.println("<a href='employees' class='btn'>View All Employees</a>");
+        out.println("<a href='attendance.jsp' class='btn'>Mark Attendance</a>");
+        out.println("<a href='login.html' class='btn btn-secondary'>Back to Login</a>");
+        out.println("</div>");
+    }
+    
+    /**
+     * Print HTML header with CSS
+     */
+    private void printHTMLHeader(PrintWriter out, String title) {
+        out.println("<!DOCTYPE html>");
+        out.println("<html>");
+        out.println("<head>");
+        out.println("<title>" + title + " - Nimbus</title>");
+        out.println("<meta charset='UTF-8'>");
+        out.println("<meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+        out.println("<style>");
+        out.println("* { margin: 0; padding: 0; box-sizing: border-box; }");
+        out.println("body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }");
+        out.println(".container { max-width: 1200px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }");
+        out.println("h1 { color: #667eea; margin-bottom: 10px; text-align: center; }");
+        out.println(".subtitle { text-align: center; color: #666; margin-bottom: 20px; }");
+        out.println(".search-container { display: flex; gap: 15px; margin: 20px 0; flex-wrap: wrap; justify-content: center; }");
+        out.println(".search-form { display: flex; gap: 10px; }");
+        out.println(".search-form input { padding: 10px 15px; border: 2px solid #e0e0e0; border-radius: 5px; font-size: 14px; min-width: 200px; }");
+        out.println(".search-form input:focus { outline: none; border-color: #667eea; }");
+        out.println(".table-container { overflow-x: auto; margin: 20px 0; }");
+        out.println("table { width: 100%; border-collapse: collapse; }");
+        out.println("thead { background: #667eea; color: white; }");
+        out.println("th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }");
+        out.println("tbody tr:hover { background: #f5f5f5; }");
+        out.println(".btn { padding: 10px 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; border: none; cursor: pointer; display: inline-block; transition: background 0.3s; }");
+        out.println(".btn:hover { background: #5568d3; }");
+        out.println(".btn-secondary { background: #95a5a6; }");
+        out.println(".btn-secondary:hover { background: #7f8c8d; }");
+        out.println(".navigation { text-align: center; margin-top: 20px; display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }");
+        out.println(".no-data { text-align: center; padding: 40px; color: #666; font-size: 18px; }");
+        out.println(".error-message { background: #ffebee; color: #c62828; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #e74c3c; }");
+        out.println(".employee-detail { margin: 20px 0; padding: 20px; background: #f8f9fa; border-radius: 8px; }");
+        out.println(".employee-detail h2 { color: #667eea; margin-bottom: 15px; }");
+        out.println(".detail-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; }");
+        out.println(".detail-item { padding: 10px; background: white; border-radius: 5px; border-left: 3px solid #667eea; }");
+        out.println("@media (max-width: 768px) { .search-container { flex-direction: column; } .search-form { width: 100%; } .search-form input { width: 100%; } }");
+        out.println("</style>");
+        out.println("</head>");
+        out.println("<body>");
+    }
+    
+    /**
+     * Print HTML footer
+     */
+    private void printHTMLFooter(PrintWriter out) {
+        out.println("</body>");
+        out.println("</html>");
+    }
+    
+    @Override
+    public void destroy() {
+        System.out.println("EmployeeServlet destroyed");
+    }
+}
