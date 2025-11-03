@@ -1,0 +1,342 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ page import="java.text.SimpleDateFormat" %>
+<%@ page import="java.util.Date" %>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Attendance Portal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .attendance-container {
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 600px;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #667eea;
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .current-date {
+            background: #f0f4ff;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        
+        .form-group label .required {
+            color: #e74c3c;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+            font-family: inherit;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .status-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+        
+        .radio-option {
+            position: relative;
+        }
+        
+        .radio-option input[type="radio"] {
+            position: absolute;
+            opacity: 0;
+        }
+        
+        .radio-option label {
+            display: block;
+            padding: 12px;
+            background: #f5f5f5;
+            border: 2px solid #e0e0e0;
+            border-radius: 5px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        
+        .radio-option input[type="radio"]:checked + label {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .radio-option label:hover {
+            border-color: #667eea;
+        }
+        
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+        
+        .btn-submit:hover {
+            background: #5568d3;
+        }
+        
+        .btn-submit:active {
+            transform: translateY(1px);
+        }
+        
+        .navigation-links {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .nav-btn {
+            flex: 1;
+            padding: 10px;
+            background: #95a5a6;
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .nav-btn:hover {
+            background: #7f8c8d;
+        }
+        
+        .info-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        
+        .info-box p {
+            color: #856404;
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        
+        @media (max-width: 480px) {
+            .attendance-container {
+                padding: 30px 20px;
+            }
+            
+            .header h1 {
+                font-size: 24px;
+            }
+            
+            .status-options {
+                grid-template-columns: 1fr;
+            }
+            
+            .navigation-links {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="attendance-container">
+        <div class="header">
+            <h1>📝 Student Attendance Portal</h1>
+            <p>Mark student attendance for today</p>
+        </div>
+        
+        <div class="current-date">
+            <% 
+                SimpleDateFormat sdf = new SimpleDateFormat("EEEE, MMMM dd, yyyy");
+                String currentDate = sdf.format(new Date());
+            %>
+            Today: <%= currentDate %>
+        </div>
+        
+        <div class="info-box">
+            <p><strong>ℹ️ Instructions:</strong></p>
+            <p>• Fill in all required fields marked with <span style="color:#e74c3c;">*</span></p>
+            <p>• Select appropriate attendance status</p>
+            <p>• Add remarks if necessary (optional)</p>
+        </div>
+        
+        <form action="attendance" method="POST" onsubmit="return validateForm()">
+            <div class="form-group">
+                <label for="studentId">Student ID <span class="required">*</span></label>
+                <input 
+                    type="text" 
+                    id="studentId" 
+                    name="studentId" 
+                    placeholder="e.g., S001, S002, etc."
+                    required
+                    pattern="[A-Za-z0-9]+"
+                    title="Only letters and numbers allowed">
+            </div>
+            
+            <div class="form-group">
+                <label for="studentName">Student Name <span class="required">*</span></label>
+                <input 
+                    type="text" 
+                    id="studentName" 
+                    name="studentName" 
+                    placeholder="Enter full name"
+                    required
+                    minlength="2">
+            </div>
+            
+            <div class="form-group">
+                <label for="attendanceDate">Attendance Date <span class="required">*</span></label>
+                <input 
+                    type="date" 
+                    id="attendanceDate" 
+                    name="attendanceDate" 
+                    required
+                    max="<%= new SimpleDateFormat("yyyy-MM-dd").format(new Date()) %>">
+            </div>
+            
+            <div class="form-group">
+                <label>Attendance Status <span class="required">*</span></label>
+                <div class="status-options">
+                    <div class="radio-option">
+                        <input type="radio" id="present" name="status" value="Present" checked>
+                        <label for="present">✅ Present</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="absent" name="status" value="Absent">
+                        <label for="absent">❌ Absent</label>
+                    </div>
+                    <div class="radio-option">
+                        <input type="radio" id="late" name="status" value="Late">
+                        <label for="late">⏰ Late</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="remarks">Remarks (Optional)</label>
+                <textarea 
+                    id="remarks" 
+                    name="remarks" 
+                    placeholder="Add any additional notes or comments..."></textarea>
+            </div>
+            
+            <button type="submit" class="btn-submit">Mark Attendance</button>
+        </form>
+        
+        <div class="navigation-links">
+            <a href="viewAttendance" class="nav-btn">View Records</a>
+            <a href="employees" class="nav-btn">View Employees</a>
+            <a href="login.html" class="nav-btn">Logout</a>
+        </div>
+    </div>
+    
+    <script>
+        // Set today's date as default
+        document.addEventListener('DOMContentLoaded', function() {
+            var today = new Date().toISOString().split('T')[0];
+            document.getElementById('attendanceDate').value = today;
+        });
+        
+        function validateForm() {
+            var studentId = document.getElementById('studentId').value.trim();
+            var studentName = document.getElementById('studentName').value.trim();
+            var attendanceDate = document.getElementById('attendanceDate').value;
+            
+            if (studentId === '' || studentName === '' || attendanceDate === '') {
+                alert('Please fill in all required fields!');
+                return false;
+            }
+            
+            if (studentId.length < 2) {
+                alert('Student ID must be at least 2 characters long!');
+                return false;
+            }
+            
+            if (studentName.length < 2) {
+                alert('Student name must be at least 2 characters long!');
+                return false;
+            }
+            
+            // Confirm submission
+            var status = document.querySelector('input[name="status"]:checked').value;
+            var confirmMsg = 'Mark ' + studentName + ' (' + studentId + ') as ' + status + ' for ' + attendanceDate + '?';
+            
+            return confirm(confirmMsg);
+        }
+    </script>
+</body>
+</html>
