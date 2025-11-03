@@ -1,0 +1,90 @@
+package dao;
+
+import util.DatabaseConnection;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+/**
+ * Data Access Object for User operations
+ */
+public class UserDAO {
+    
+    /**
+     * Validate user credentials
+     * @param username User's username
+     * @param password User's password
+     * @return Full name if valid, null if invalid
+     */
+    public String validateUser(String username, String password) {
+        String query = "SELECT full_name FROM users WHERE username = ? AND password = ?";
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
+            pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, username);
+            pstmt.setString(2, password);
+            
+            rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getString("full_name");
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error validating user: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            closeResources(rs, pstmt, conn);
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Check if username exists
+     * @param username Username to check
+     * @return true if exists, false otherwise
+     */
+    public boolean userExists(String username) {
+        String query = "SELECT COUNT(*) FROM users WHERE username = ?";
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
+            pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, username);
+            rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking user existence: " + e.getMessage());
+        } finally {
+            closeResources(rs, pstmt, conn);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Close database resources
+     */
+    private void closeResources(ResultSet rs, PreparedStatement pstmt, Connection conn) {
+        try {
+            if (rs != null) rs.close();
+            if (pstmt != null) pstmt.close();
+            if (conn != null) conn.close();
+        } catch (SQLException e) {
+            System.err.println("Error closing resources: " + e.getMessage());
+        }
+    }
+}
