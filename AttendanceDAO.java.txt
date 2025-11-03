@@ -1,0 +1,261 @@
+package dao;
+
+import util.DatabaseConnection;
+import java.sql.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Data Access Object for Attendance operations
+ */
+public class AttendanceDAO {
+    
+    /**
+     * Save attendance record to database
+     * @param studentId Student ID
+     * @param studentName Student Name
+     * @param attendanceDate Date of attendance
+     * @param status Attendance status (Present/Absent/Late)
+     * @param remarks Additional remarks
+     * @return true if saved successfully, false otherwise
+     */
+    public boolean saveAttendance(String studentId, String studentName, 
+                                 Date attendanceDate, String status, String remarks) {
+        
+        String query = "INSERT INTO attendance (student_id, student_name, attendance_date, status, remarks) " +
+                      "VALUES (?, ?, ?, ?, ?)";
+        
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
+            pstmt = conn.prepareStatement(query);
+            
+            pstmt.setString(1, studentId);
+            pstmt.setString(2, studentName);
+            pstmt.setDate(3, attendanceDate);
+            pstmt.setString(4, status);
+            pstmt.setString(5, remarks);
+            
+            int rowsAffected = pstmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                System.out.println("Attendance saved successfully for: " + studentName);
+                return true;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error saving attendance: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            closeResources(null, pstmt, conn);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Get all attendance records
+     * @return List of attendance records
+     */
+    public List<Map<String, Object>> getAllAttendance() {
+        List<Map<String, Object>> attendanceList = new ArrayList<>();
+        String query = "SELECT * FROM attendance ORDER BY attendance_date DESC, student_id";
+        
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(query);
+            
+            while (rs.next()) {
+                Map<String, Object> record = new HashMap<>();
+                record.put("attendance_id", rs.getInt("attendance_id"));
+                record.put("student_id", rs.getString("student_id"));
+                record.put("student_name", rs.getString("student_name"));
+                record.put("attendance_date", rs.getDate("attendance_date"));
+                record.put("status", rs.getString("status"));
+                record.put("remarks", rs.getString("remarks"));
+                record.put("created_at", rs.getTimestamp("created_at"));
+                
+                attendanceList.add(record);
+            }
+            
+            System.out.println("Retrieved " + attendanceList.size() + " attendance records");
+            
+        } catch (SQLException e) {
+            System.err.println("Error fetching attendance records: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            closeResources(rs, stmt, conn);
+        }
+        
+        return attendanceList;
+    }
+    
+    /**
+     * Get attendance records by student ID
+     * @param studentId Student ID to search
+     * @return List of attendance records for the student
+     */
+    public List<Map<String, Object>> getAttendanceByStudentId(String studentId) {
+        List<Map<String, Object>> attendanceList = new ArrayList<>();
+        String query = "SELECT * FROM attendance WHERE student_id = ? ORDER BY attendance_date DESC";
+        
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
+            pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, studentId);
+            rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                Map<String, Object> record = new HashMap<>();
+                record.put("attendance_id", rs.getInt("attendance_id"));
+                record.put("student_id", rs.getString("student_id"));
+                record.put("student_name", rs.getString("student_name"));
+                record.put("attendance_date", rs.getDate("attendance_date"));
+                record.put("status", rs.getString("status"));
+                record.put("remarks", rs.getString("remarks"));
+                record.put("created_at", rs.getTimestamp("created_at"));
+                
+                attendanceList.add(record);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error fetching attendance by student ID: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            closeResources(rs, pstmt, conn);
+        }
+        
+        return attendanceList;
+    }
+    
+    /**
+     * Get attendance records by date
+     * @param date Date to search
+     * @return List of attendance records for the date
+     */
+    public List<Map<String, Object>> getAttendanceByDate(Date date) {
+        List<Map<String, Object>> attendanceList = new ArrayList<>();
+        String query = "SELECT * FROM attendance WHERE attendance_date = ? ORDER BY student_id";
+        
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
+            pstmt = conn.prepareStatement(query);
+            pstmt.setDate(1, date);
+            rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                Map<String, Object> record = new HashMap<>();
+                record.put("attendance_id", rs.getInt("attendance_id"));
+                record.put("student_id", rs.getString("student_id"));
+                record.put("student_name", rs.getString("student_name"));
+                record.put("attendance_date", rs.getDate("attendance_date"));
+                record.put("status", rs.getString("status"));
+                record.put("remarks", rs.getString("remarks"));
+                record.put("created_at", rs.getTimestamp("created_at"));
+                
+                attendanceList.add(record);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error fetching attendance by date: " + e.getMessage());
+            e.printStackTrace();
+        } finally {
+            closeResources(rs, pstmt, conn);
+        }
+        
+        return attendanceList;
+    }
+    
+    /**
+     * Check if attendance already exists for a student on a specific date
+     * @param studentId Student ID
+     * @param date Attendance date
+     * @return true if exists, false otherwise
+     */
+    public boolean attendanceExists(String studentId, Date date) {
+        String query = "SELECT COUNT(*) FROM attendance WHERE student_id = ? AND attendance_date = ?";
+        
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
+            pstmt = conn.prepareStatement(query);
+            pstmt.setString(1, studentId);
+            pstmt.setDate(2, date);
+            rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking attendance existence: " + e.getMessage());
+        } finally {
+            closeResources(rs, pstmt, conn);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Get attendance statistics
+     * @return Map with statistics
+     */
+    public Map<String, Integer> getAttendanceStatistics() {
+        Map<String, Integer> stats = new HashMap<>();
+        String query = "SELECT status, COUNT(*) as count FROM attendance GROUP BY status";
+        
+        Connection conn = null;
+        Statement stmt = null;
+        ResultSet rs = null;
+        
+        try {
+            conn = DatabaseConnection.getConnection();
+            stmt = conn.createStatement();
+            rs = stmt.executeQuery(query);
+            
+            while (rs.next()) {
+                stats.put(rs.getString("status"), rs.getInt("count"));
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error fetching statistics: " + e.getMessage());
+        } finally {
+            closeResources(rs, stmt, conn);
+        }
+        
+        return stats;
+    }
+    
+    /**
+     * Close database resources
+     */
+    private void closeResources(ResultSet rs, Statement stmt, Connection conn) {
+        try {
+            if (rs != null) rs.close();
+            if (stmt != null) stmt.close();
+            if (conn != null) conn.close();
+        } catch (SQLException e) {
+            System.err.println("Error closing resources: " + e.getMessage());
+        }
+    }
+}
