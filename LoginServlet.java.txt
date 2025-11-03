@@ -1,0 +1,148 @@
+package servlets;
+
+import dao.UserDAO;
+import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
+import javax.servlet.http.HttpServlet;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import java.io.IOException;
+import java.io.PrintWriter;
+
+/**
+ * Servlet for handling user login
+ * Maps to /login URL
+ */
+@WebServlet("/login")
+public class LoginServlet extends HttpServlet {
+    
+    private UserDAO userDAO;
+    
+    @Override
+    public void init() throws ServletException {
+        userDAO = new UserDAO();
+        System.out.println("LoginServlet initialized");
+    }
+    
+    /**
+     * Handles GET requests - Display login form
+     */
+    @Override
+    protected void doGet(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        response.sendRedirect("login.html");
+    }
+    
+    /**
+     * Handles POST requests - Process login form
+     */
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response) 
+            throws ServletException, IOException {
+        
+        response.setContentType("text/html");
+        PrintWriter out = response.getWriter();
+        
+        // Retrieve form parameters
+        String username = request.getParameter("username");
+        String password = request.getParameter("password");
+        
+        // Validate input
+        if (username == null || username.trim().isEmpty() || 
+            password == null || password.trim().isEmpty()) {
+            
+            displayError(out, "Username and password are required!");
+            return;
+        }
+        
+        // Validate credentials
+        String fullName = userDAO.validateUser(username.trim(), password);
+        
+        if (fullName != null) {
+            // Login successful - Create session
+            HttpSession session = request.getSession();
+            session.setAttribute("username", username);
+            session.setAttribute("fullName", fullName);
+            session.setMaxInactiveInterval(30 * 60); // 30 minutes
+            
+            // Display welcome message
+            displayWelcome(out, fullName, username);
+            
+        } else {
+            // Login failed
+            displayError(out, "Invalid username or password!");
+        }
+    }
+    
+    /**
+     * Display welcome message on successful login
+     */
+    private void displayWelcome(PrintWriter out, String fullName, String username) {
+        out.println("<!DOCTYPE html>");
+        out.println("<html>");
+        out.println("<head>");
+        out.println("<title>Welcome - Nimbus Portal</title>");
+        out.println("<style>");
+        out.println("body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }");
+        out.println(".welcome-container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; max-width: 500px; }");
+        out.println(".welcome-container h1 { color: #667eea; margin-bottom: 20px; }");
+        out.println(".welcome-container p { font-size: 18px; color: #333; margin: 15px 0; }");
+        out.println(".user-info { background: #f0f4ff; padding: 20px; border-radius: 8px; margin: 20px 0; }");
+        out.println(".btn { display: inline-block; padding: 12px 30px; margin: 10px 5px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; transition: background 0.3s; }");
+        out.println(".btn:hover { background: #5568d3; }");
+        out.println(".logout { background: #e74c3c; }");
+        out.println(".logout:hover { background: #c0392b; }");
+        out.println("</style>");
+        out.println("</head>");
+        out.println("<body>");
+        out.println("<div class='welcome-container'>");
+        out.println("<h1>🎉 Login Successful!</h1>");
+        out.println("<div class='user-info'>");
+        out.println("<p><strong>Welcome, " + fullName + "!</strong></p>");
+        out.println("<p>Username: <em>" + username + "</em></p>");
+        out.println("<p>Login Time: " + new java.util.Date() + "</p>");
+        out.println("</div>");
+        out.println("<p>You have successfully logged into the Nimbus Portal.</p>");
+        out.println("<div>");
+        out.println("<a href='employees' class='btn'>View Employees</a>");
+        out.println("<a href='attendance.jsp' class='btn'>Mark Attendance</a>");
+        out.println("<a href='logout' class='btn logout'>Logout</a>");
+        out.println("</div>");
+        out.println("</div>");
+        out.println("</body>");
+        out.println("</html>");
+    }
+    
+    /**
+     * Display error message on failed login
+     */
+    private void displayError(PrintWriter out, String errorMessage) {
+        out.println("<!DOCTYPE html>");
+        out.println("<html>");
+        out.println("<head>");
+        out.println("<title>Login Error</title>");
+        out.println("<style>");
+        out.println("body { font-family: Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin: 0; padding: 0; display: flex; justify-content: center; align-items: center; min-height: 100vh; }");
+        out.println(".error-container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); text-align: center; max-width: 400px; }");
+        out.println(".error-container h1 { color: #e74c3c; margin-bottom: 20px; }");
+        out.println(".error-message { background: #ffebee; color: #c62828; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #e74c3c; }");
+        out.println(".btn { display: inline-block; padding: 12px 30px; margin-top: 20px; background: #667eea; color: white; text-decoration: none; border-radius: 5px; }");
+        out.println(".btn:hover { background: #5568d3; }");
+        out.println("</style>");
+        out.println("</head>");
+        out.println("<body>");
+        out.println("<div class='error-container'>");
+        out.println("<h1>⚠️ Login Failed</h1>");
+        out.println("<div class='error-message'>" + errorMessage + "</div>");
+        out.println("<a href='login.html' class='btn'>Try Again</a>");
+        out.println("</div>");
+        out.println("</body>");
+        out.println("</html>");
+    }
+    
+    @Override
+    public void destroy() {
+        System.out.println("LoginServlet destroyed");
+    }
+}
